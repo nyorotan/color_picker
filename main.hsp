@@ -1,0 +1,70 @@
+#packopt icon "icon.ico"
+#packopt version "version.txt"
+#packopt name "color_picker"
+
+#include "user32.as"
+#include "kernel32.as"
+#include "color_picker.as"
+#uselib "user32.dll"
+
+
+	screen 0, 340, 180, 0
+	cls 1
+	title "Color_Picker"
+	objmode 2
+
+	font "メイリオ", 12, 0
+	pos 5, 12
+	sdim mesbox1, 256
+	mesbox mesbox1, 329, 118, 0
+    OID = stat
+	objsize 210, 30
+	pos 64, 142
+	button "OK", *Button1
+    gsel 0, -1
+	// open_custom_color_picker 変数(結果格納用), ダークモード(0/1), タイトルバーの色, フォント名, アルファ使用(0/1)
+	open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
+
+    // ARGBを分解
+	r = result_color & 0xff
+	g = (result_color >> 8) & 0xff
+	b = (result_color >> 16) & 0xff
+	a = (result_color >> 24) & 0xff
+
+	// AHSVに変換
+	RGB2HSV result_color, resA, resH, resS, resV
+
+	// 表示
+    mesbox1 = strf("ARGB  16進数: %08x", result_color) + "\n"
+    mesbox1 += strf("ARGB  分解: A=%d, R=%d, G=%d, B=%d", a, r, g, b) + "\n\n"
+    mesbox1 += strf("AHSV  16進数: %02x%02x%02x%02x", resA, resH, resS, resV) + "\n"
+    mesbox1 += strf("AHSV  分解: A=%d, H=%d, S=%d, V=%d", resA, resH, resS, resV)
+    objprm OID, mesbox1
+
+    gsel 0, 1
+    text_to_copy = strf("%08x", result_color)
+    gosub *copy_to_clipboard
+    stop
+
+
+*copy_to_clipboard
+    size = strlen(text_to_copy) + 1
+
+    hMem = GlobalAlloc(0x2, size)
+    if hMem = 0 : dialog "メモリ確保に失敗しました。" : stop
+
+    pMem = GlobalLock(hMem)
+    RtlMoveMemory pMem, text_to_copy, size
+    GlobalUnlock hMem
+
+    if OpenClipboard(0) = 0 : dialog "クリップボードを開けません。" : stop
+
+    EmptyClipboard
+    SetClipboardData 0x1, hMem
+
+    CloseClipboard
+    return
+
+*Button1
+	end
+	stop
