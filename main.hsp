@@ -21,7 +21,8 @@
 	objsize 210, 30
 	pos 64, 142
 	button "OK", *Button1
-    gsel 0, -1
+    // gsel 0, -1
+*main_loop
 	// open_custom_color_picker 変数(結果格納用), ダークモード(0/1), タイトルバーの色, フォント名, アルファ使用(0/1)
 	open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
 
@@ -44,6 +45,7 @@
     gsel 0, 1
     text_to_copy = strf("%08x", result_color)
     gosub *copy_to_clipboard
+    goto *main_loop
     stop
 
 

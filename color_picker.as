@@ -10,6 +10,8 @@
     #func SetLayeredWindowAttributes "SetLayeredWindowAttributes" int, int, int, int
     #func ReleaseDC "ReleaseDC" int, int
     #func SetThreadDpiAwarenessContext "SetThreadDpiAwarenessContext" int
+    #func SetCapture "SetCapture" int        // 追加
+    #func ReleaseCapture "ReleaseCapture"    // 追加
 
 #uselib "gdi32.dll"
     #func GetPixel "GetPixel" int, int, int
@@ -24,8 +26,9 @@
 
 // パレット保存用ファイル名
 #define PALETTE_FILE "utils\\color_palette.json"
+#define COORDS_FILE "utils\\coordinates.json" // 追加
 #define PALETTE_NUM 10
-#define SET_OLD 0
+#define SET_OLD 1
 
 // ARGB(0xAABBGGRR)をAHSVに変換する
 // RGB2HSV 入力(0xAABBGGRR), A(変数), H(変数), S(変数), V(変数)
@@ -90,7 +93,19 @@
 // open_custom_color_picker 変数(結果格納用), ダークモード(0/1), タイトルバーの色, フォント名, アルファ使用(0/1)
 #deffunc open_custom_color_picker var result_color, int is_dark, int bar_color, str f_name, int use_alpha
     m_hwnd = ginfo_sel
-    m_wx = ginfo_wx1 : m_wy = ginfo_wy1
+    // 初期値として現在のマウス位置付近を指定
+    init_wx = ginfo_wx1 + 50 : init_wy = ginfo_wy1 + 50
+
+    // 座標ファイルの読み込み
+    init_coordinates
+    exist COORDS_FILE
+    if strsize != -1 {
+        notesel buf : noteload COORDS_FILE
+        split buf, ",", coords
+        if length(coords) >= 2 {
+            init_wx = int(coords(0)) : init_wy = int(coords(1))
+        }
+    }
 
     // ダーク・ライトモードに応じた配色設定
     switch is_dark
@@ -183,7 +198,9 @@
     py = palette_y + 40
 
     winH = 440 : if use_alpha : winH = 505
-    screen ID_WINDOW, 460, winH, 8, m_wx + 100, m_wy + 100
+    // screen ID_WINDOW, 460, winH, 8, m_wx + 100, m_wy + 100
+    screen ID_WINDOW, 460, winH, 8, init_wx, init_wy
+
     title "Select Color (Right-click palette to save)"
     gsel ID_WINDOW, 2 // 常に最前面に表示してメインウィンドウの背後に回るのを防ぐ
     hPicker = hwnd
@@ -203,8 +220,12 @@
     gsel ID_PICK_PREVIEW, -1
 
     bgscr ID_CROSS_OVERLAY, ginfo_dispx, ginfo_dispy, 8, 0, 0
-    SetWindowLong hwnd, -20, 0x00080000 | 0x00000020
-    SetLayeredWindowAttributes hwnd, 0xFF00FF, 0, 1
+    // SetWindowLong hwnd, -20, 0x00080000 | 0x00000020
+    // クリックをこのウィンドウで止めるようにする
+    SetWindowLong hwnd, -20, 0x00080000
+    // 特定色を透明化しつつ、LWA_ALPHA(0x2)を併用して全体をわずかに不透明(1)にする
+    // SetLayeredWindowAttributes hwnd, 0xFF00FF, 0, 1
+    SetLayeredWindowAttributes hwnd, 0xFF00FF, 1, 2
     gsel ID_CROSS_OVERLAY, -1
 
     gsel ID_WINDOW // 操作対象をメインウィンドウに戻す
@@ -582,7 +603,12 @@
                     is_done = 1
                 }
                 // Cancel
-                if mousex >= 205 && mousex <= 310 : is_done = 1
+                if mousex >= 205 && mousex <= 310 {
+                    // 座標を保存してからアプリを終了
+                    s_coords = "" + ginfo_wx1 + "," + ginfo_wy1
+                    notesel s_coords : notesave COORDS_FILE
+                    end
+                }
                 // Pick (スポイト)
                 if mousex >= 320 && mousex <= 445 {
                     gsel ID_WINDOW, -1 // ウィンドウを一時隠す
@@ -598,6 +624,7 @@
                     gsel ID_PICK_PREVIEW, 2
                     // 座標指定付きで表示
                     gsel ID_CROSS_OVERLAY, 2
+                    SetCapture hwnd // 追加 マウス入力をこのウィンドウに固定（念のため）
                     // オーバーレイウィンドウを画面サイズ(論理サイズ)にリサイズ
                     width ginfo_dispx, ginfo_dispy, 0, 0
 
@@ -677,7 +704,7 @@
                         }
                         await 16
                     loop
-
+                    ReleaseCapture // 追加 キャプチャ解除
                     ReleaseDC 0, hdc_screen
                     // High-DPI: Restore original DPI context
                     SetThreadDpiAwarenessContext old_dpi_ctx
@@ -736,6 +763,13 @@
         if ginfo_act != ID_WINDOW && keys & 128 : is_done = 1
         redraw 1 : await 16 : if is_done : break
     loop
+
+    // 終了時に現在のウィンドウ位置を保存
+    // ginfo_wx1 は現在のウィンドウの左上座標を取得します
+    s_coords = "" + ginfo_wx1 + "," + ginfo_wy1
+    notesel s_coords : notesave COORDS_FILE
+
+
     EnableWindow m_hwnd, 1 : gsel ID_WINDOW, -1 : gsel m_hwnd
     return
 
@@ -807,4 +841,18 @@
     notesel json_data
     notesave PALETTE_FILE
     return
+
+#deffunc local init_coordinates
+    exist COORDS_FILE
+    if strsize != -1 : return // すでに存在する場合は何もしない
+
+    // ディレクトリ確認・作成
+    dirlist s_chk, "utils", 5
+    if stat == 0 : mkdir "utils"
+
+    // 初期座標(デフォルト値)を書き込み
+    s_coords = "100,100"
+    notesel s_coords : notesave COORDS_FILE
+    return
+
 #global
