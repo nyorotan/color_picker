@@ -10,8 +10,9 @@
     #func SetLayeredWindowAttributes "SetLayeredWindowAttributes" int, int, int, int
     #func ReleaseDC "ReleaseDC" int, int
     #func SetThreadDpiAwarenessContext "SetThreadDpiAwarenessContext" int
-    #func SetCapture "SetCapture" int        // 追加
-    #func ReleaseCapture "ReleaseCapture"    // 追加
+    #func SetCapture "SetCapture" int
+    #func ReleaseCapture "ReleaseCapture"
+    #func SetWindowDisplayAffinity "SetWindowDisplayAffinity" int, int
 
 #uselib "gdi32.dll"
     #func GetPixel "GetPixel" int, int, int
@@ -220,12 +221,11 @@
     gsel ID_PICK_PREVIEW, -1
 
     bgscr ID_CROSS_OVERLAY, ginfo_dispx, ginfo_dispy, 8, 0, 0
-    // SetWindowLong hwnd, -20, 0x00080000 | 0x00000020
-    // クリックをこのウィンドウで止めるようにする
-    SetWindowLong hwnd, -20, 0x00080000
-    // 特定色を透明化しつつ、LWA_ALPHA(0x2)を併用して全体をわずかに不透明(1)にする
-    // SetLayeredWindowAttributes hwnd, 0xFF00FF, 0, 1
+    SetWindowLong hwnd, -20, 0x00080000 // WS_EX_LAYERED
+    // マゼンタ(0xFF00FF)を完全透明キーとして設定 (LWA_COLORKEY = 1)
     SetLayeredWindowAttributes hwnd, 0xFF00FF, 1, 2
+    // キャプチャからオーバーレイを除外(WDA_EXCLUDEFROMCAPTURE = 0x11)
+    SetWindowDisplayAffinity hwnd, 0x00000011
     gsel ID_CROSS_OVERLAY, -1
 
     gsel ID_WINDOW // 操作対象をメインウィンドウに戻す

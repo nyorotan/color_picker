@@ -94,5 +94,5 @@ open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
 
 ## バージョン情報
 
-- **バージョン**: v1.1.0
+- **バージョン**: v1.1.1
 - **作者**: nyorotan

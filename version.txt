@@ -1,4 +1,4 @@
-_FILEVERSION=1.1.0
+_FILEVERSION=1.1.1
 ProductName="カラーピッカー for HSP3"
 CompanyName=nyorotan
 LegalCopyright=@ 2026 nyorotan
