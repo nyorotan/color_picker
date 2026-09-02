@@ -31,12 +31,12 @@
 #define PALETTE_NUM 10
 #define SET_OLD 1
 
-// ARGB(0xAABBGGRR)をAHSVに変換する
-// RGB2HSV 入力(0xAABBGGRR), A(変数), H(変数), S(変数), V(変数)
+// ARGB(0xAARRGGBB)をAHSVに変換する
+// RGB2HSV 入力(0xAARRGGBB), A(変数), H(変数), S(変数), V(変数)
 #deffunc RGB2HSV int c_argb, var _resA, var _resH, var _resS, var _resV
-    _r = c_argb & 0xff
+    _b = c_argb & 0xff
     _g = (c_argb >> 8) & 0xff
-    _b = (c_argb >> 16) & 0xff
+    _r = (c_argb >> 16) & 0xff
     _resA = (c_argb >> 24) & 0xff
 
     tr = double(_r) : tg = double(_g) : tb = double(_b)
@@ -61,7 +61,7 @@
     }
     return
 
-// AHSVをARGB(0xAABBGGRR)に変換する
+// AHSVをARGB(0xAARRGGBB)に変換する
 // HSV2RGB A, H, S, V, 結果(変数)
 #deffunc HSV2RGB int _a, int _h, int _s, int _v, var _res_argb
     _hh = _h \ 192 : if _hh < 0 : _hh += 192
@@ -87,7 +87,7 @@
         case 5 : r = _vv : g = _p  : b = _q  : swbreak
     swend
 
-    _res_argb = (r & 0xff) | ((g & 0xff) << 8) | ((b & 0xff) << 16) | ((_a & 0xff) << 24)
+    _res_argb = (b & 0xff) | ((g & 0xff) << 8) | ((r & 0xff) << 16) | ((_a & 0xff) << 24)
     return
 
 // 外部から呼び出す命令の定義
@@ -140,6 +140,7 @@
         curA = 255
     }
     oldA = curA // 初期アルファ値を保存
+    curR = oldR : curG = oldG : curB = oldB
 
     // RGB -> HSV 変換 (初期値を現在の色に合わせる)
     tr = double(oldR) : tg = double(oldG) : tb = double(oldB)
@@ -174,6 +175,7 @@
     sH = "" + curH : sS = "" + curS : sV = "" + curV
     sR = "" + oldR : sG = "" + oldG : sB = "" + oldB
     sA = "" + (curA * 100 / 255) // 内部値(0-255)を表示用(0-100%)に変換して初期化
+    prev_sA = sA
     is_done = 0
     click_prev = 0
     dragging_part = 0 // 0:なし, 1:色相ホイール, 2:SVボックス, 3:アルファ
@@ -333,7 +335,7 @@
                 } else : if click_prev == 0 {
                     if showOld == 1 && mousey >= py && mousey <= py + 60 && mousex >= 45 && mousex <= 75 {
                         curH = initH : curS = initS : curV = initV
-                        if use_alpha : curA = oldA : sA = "" + int(curA * 100 / 255) : objprm idA, sA
+                        if use_alpha : curA = oldA : sA = "" + int(curA * 100 / 255) : objprm idA, sA : prev_sA = sA
                         m_changed = 1
                     }
                 }
@@ -351,13 +353,14 @@
             } else : if dragging_part == 3 { // アルファ
                 curA = limit(mousex - ax, 0, aw) * 255 / aw
                 sA = "" + int(curA * 100 / 255) : objprm idA, sA
+                prev_sA = sA
                 m_changed = 1
             }
 
             // パレット選択 (左クリック)
             if (p_idx != -1) & (click_prev == 0) {
                 sel_color = palette_colors(p_idx)
-                tr = double(sel_color & 0xff) : tg = double((sel_color >> 8) & 0xff) : tb = double((sel_color >> 16) & 0xff)
+                tb = double(sel_color & 0xff) : tg = double((sel_color >> 8) & 0xff) : tr = double((sel_color >> 16) & 0xff)
                 if use_alpha {
                     curA = (sel_color >> 24) & 0xff : if curA == 0 : curA = 255
                     sA = "" + int(curA * 100 / 255) : objprm idA, sA
@@ -384,7 +387,7 @@
                     if (mousex >= 15) & (mousex < 15 + PALETTE_NUM * 30) {
                         p_idx = (mousex - 15) / 30
                         hsvcolor curH, curS, curV
-                        new_c = ginfo_r | (ginfo_g << 8) | (ginfo_b << 16)
+                        new_c = ginfo_b | (ginfo_g << 8) | (ginfo_r << 16)
                         if use_alpha : new_c = new_c | (curA << 24) : else : new_c = new_c | (255 << 24)
                         palette_colors(p_idx) = new_c
                         save_palette palette_colors
@@ -399,13 +402,10 @@
 
         if m_changed {
             sH = "" + curH : sS = "" + curS : sV = "" + curV : objprm idH, sH : objprm idS, sS : objprm idV, sV
-            hsvcolor curH, curS, curV : sR = "" + ginfo_r : sG = "" + ginfo_g : sB = "" + ginfo_b : objprm idR, sR : objprm idG, sG : objprm idB, sB
+            hsvcolor curH, curS, curV
+            curR = ginfo_r : curG = ginfo_g : curB = ginfo_b
+            sR = "" + curR : sG = "" + curG : sB = "" + curB : objprm idR, sR : objprm idG, sG : objprm idB, sB
         }
-
-        // 現在の HSV 状態から最新の RGB 値を確定させる
-        hsvcolor curH, curS, curV
-        curR = ginfo_r : curG = ginfo_g : curB = ginfo_b
-
         // 呼び出し元の result_color にリアルタイム反映
         result_color = curB | (curG << 8) | (curR << 16)
         if use_alpha : result_color = result_color | (curA << 24) : else : result_color = result_color | (255 << 24)
@@ -418,7 +418,7 @@
         repeat PALETTE_NUM
             px_chip = 15 + cnt * 30 : py_chip = palette_y
             c_chip = palette_colors(cnt)
-            cr_chip = c_chip & 0xff : cg_chip = (c_chip >> 8) & 0xff : cb_chip = (c_chip >> 16) & 0xff
+            cb_chip = c_chip & 0xff : cg_chip = (c_chip >> 8) & 0xff : cr_chip = (c_chip >> 16) & 0xff
             ca_chip = 255 : if use_alpha : ca_chip = (c_chip >> 24) & 0xff
 
             // 透明度がある場合の市松模様
@@ -549,7 +549,6 @@
         // 各入力ボックスの値を取得
         valH = limit(int(sH), 0, 191) : valS = limit(int(sS), 0, 255) : valV = limit(int(sV), 0, 255)
         valR = limit(int(sR), 0, 255) : valG = limit(int(sG), 0, 255) : valB = limit(int(sB), 0, 255)
-        if use_alpha : valA = limit(int(sA), 0, 100) * 255 / 100 : else : valA = 255 ; 0-100%入力から0-255に変換
 
         // ドラッグ操作中ではない時のみ、テキスト入力ボックスの変更を反映する
         if dragging_part == 0 {
@@ -560,6 +559,7 @@
             }
             // RGBボックスが編集された場合
             if (valR != curR) | (valG != curG) | (valB != curB) {
+                curR = valR : curG = valG : curB = valB // ← ★ここを追加
                 tr = double(valR) : tg = double(valG) : tb = double(valB)
                 tv = tr : if tg > tv : tv = tg
                 if tb > tv : tv = tb
@@ -583,9 +583,11 @@
                 }
                 sH = "" + curH : sS = "" + curS : sV = "" + curV : objprm idH, sH : objprm idS, sS : objprm idV, sV
             }
-            // Alphaボックスが編集された場合
-            if (use_alpha && valA != curA) {
-                curA = valA
+            // Alphaボックスが手動編集された場合のみ更新
+            if use_alpha && (sA != prev_sA) {
+                prev_sA = sA
+                curA = limit(int(sA), 0, 100) * 255 / 100
+                if int(sA) == 100 : curA = 255 // 100%の場合は確実に255にする
             }
         }
 
@@ -601,8 +603,7 @@
             if mousey >= py && mousey <= py + 60 {
                 // OK
                 if mousex >= 90 && mousex <= 195 {
-                    hsvcolor curH, curS, curV
-                    result_color = ginfo_b | (ginfo_g << 8) | (ginfo_r << 16)
+                    result_color = curB | (curG << 8) | (curR << 16)
                     if use_alpha : result_color = result_color | (curA << 24) : else : result_color = result_color | (255 << 24)
                     is_done = 1
                 }
@@ -675,15 +676,15 @@
                         getkey ek, 27
                         if ek : break // Escキーが押されたらキャンセルして戻る
 
+                        // スポイトクリック時の処理
                         getkey k, 1
                         if k {
-                            // クリックされた瞬間の色を確定させる
-                            // COLORREF (0x00BBGGRR) を分解
+                            // 取得したピクセル色 (pr, pg, pb) を現在のRGBに設定
+                            curR = pr : curG = pg : curB = pb
+                            // RGB -> HSV 変換
                             tr = double(pr)
                             tg = double(pg)
                             tb = double(pb)
-
-                            // RGB -> HSV 変換
                             tv = tr : if tg > tv : tv = tg
                             if tb > tv : tv = tb
                             tm = tr : if tg < tm : tm = tg
@@ -696,14 +697,13 @@
                                 if th < 0 : th += 192.0
                                 curH = int(th)
                             }
-                            // UIの入力ボックスに即座に反映 (操作対象をメインウィンドウに戻す)
+                            // UIの入力ボックスに直ちに反映
                             gsel ID_WINDOW
                             sH = "" + curH : sS = "" + curS : sV = "" + curV : objprm idH, sH : objprm idS, sS : objprm idV, sV
-                            hsvcolor curH, curS, curV : sR = "" + ginfo_r : sG = "" + ginfo_g : sB = "" + ginfo_b : objprm idR, sR : objprm idG, sG : objprm idB, sB
+                            sR = "" + curR : sG = "" + curG : sB = "" + curB : objprm idR, sR : objprm idG, sG : objprm idB, sB
                             if use_alpha : sA = "" + int(curA * 100 / 255) : objprm idA, sA
-
-                            // 内部状態を強制更新
-                            lastSVHue = -1 // SVボックスのキャッシュを無効化して再描画させる
+                            // 状態を更新
+                            lastSVHue = -1
                             break
                         }
                         await 16
@@ -738,9 +738,9 @@
         }
         if h_tip_idx != -1 {
             c_tip = palette_colors(h_tip_idx)
-            tr_tip = c_tip & 0xff
+            tb_tip = c_tip & 0xff
             tg_tip = (c_tip >> 8) & 0xff
-            tb_tip = (c_tip >> 16) & 0xff
+            tr_tip = (c_tip >> 16) & 0xff
             ta_tip = (c_tip >> 24) & 0xff
 
             if use_alpha {
