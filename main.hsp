@@ -5,8 +5,8 @@
 #include "user32.as"
 #include "kernel32.as"
 #include "color_picker.as"
-#uselib "user32.dll"
 
+#define WM_TIMER 0x0113
 
 	screen 0, 340, 180, 0
 	cls 1
@@ -30,29 +30,18 @@
 	objsize 210, 30
 	pos 64, 142
 	button "exit", *Button1
-    // gsel 0, -1
+
+    // タイマーによる result_color 監視の開始
+    prev_result_color = -1
+    oncmd gosub *on_timer, WM_TIMER
+    SetTimer hwnd, 1, 30, 0
+
 *main_loop
 	// open_custom_color_picker 変数(結果格納用), ダークモード(0/1), タイトルバーの色, フォント名, アルファ使用(0/1)
 	open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
 
-    // ARGBを分解
-	r = result_color & 0xff
-	g = (result_color >> 8) & 0xff
-	b = (result_color >> 16) & 0xff
-	a = (result_color >> 24) & 0xff
-
-    // a, r, g, b の順（0xAARRGGBB）に再構築
-    argb_color  = (a << 24) | (r << 16) | (g << 8) | b
-
-	// AHSVに変換
-	RGB2HSV result_color, resA, resH, resS, resV
-
-	// 表示
-    mesbox1 = strf("ARGB  16進数: %08x", argb_color ) + "\n"
-    mesbox1 += strf("ARGB  分解: A=%d, R=%d, G=%d, B=%d", a, r, g, b) + "\n\n"
-    mesbox1 += strf("AHSV  16進数: %02x%02x%02x%02x", resA, resH, resS, resV) + "\n"
-    mesbox1 += strf("AHSV  分解: A=%d, H=%d, S=%d, V=%d", resA, resH, resS, resV)
-    objprm OID, mesbox1
+    // 決定後の最新表示反映
+    gosub *update_display
 
     gsel 0, 1
     text_to_copy = strf("%08x", result_color)
@@ -60,18 +49,47 @@
     goto *main_loop
     stop
 
+*on_timer
+    if result_color == prev_result_color : return
+    gosub *update_display
+    return
+
+*update_display
+    prev_result_color = result_color
+
+    // ARGBを分解
+	b = result_color & 0xff
+	g = (result_color >> 8) & 0xff
+	r = (result_color >> 16) & 0xff
+	a = (result_color >> 24) & 0xff
+
+	// AHSVに変換
+	RGB2HSV result_color, resA, resH, resS, resV
+
+	// 表示更新
+    mesbox1 = strf("ARGB  16進数: %08x", result_color ) + "\n"
+    mesbox1 += strf("ARGB  値: A=%d, R=%d, G=%d, B=%d", a, r, g, b) + "\n\n"
+    mesbox1 += strf("AHSV  16進数: %02x%02x%02x%02x", resA, resH, resS, resV) + "\n"
+    mesbox1 += strf("AHSV  値: A=%d, H=%d, S=%d, V=%d", resA, resH, resS, resV)
+
+    // 現在の選択中ウィンドウを退避してウィンドウ0のオブジェクトを更新
+    _cur_sel = ginfo_sel
+    gsel 0
+    objprm OID, mesbox1
+    gsel _cur_sel
+    return
 
 *copy_to_clipboard
     size = strlen(text_to_copy) + 1
 
     hMem = GlobalAlloc(0x2, size)
-    if hMem = 0 : dialog "メモリ確保に失敗しました。" : stop
+    if hMem = 0 : dialog "メモリの確保に失敗しました。" : stop
 
     pMem = GlobalLock(hMem)
     RtlMoveMemory pMem, text_to_copy, size
     GlobalUnlock hMem
 
-    if OpenClipboard(0) = 0 : dialog "クリップボードを開けません。" : stop
+    if OpenClipboard(0) = 0 : dialog "クリップボードを開けませんでした。" : stop
 
     EmptyClipboard
     SetClipboardData 0x1, hMem
@@ -80,5 +98,6 @@
     return
 
 *Button1
+    KillTimer hwnd, 1
 	end
 	stop

@@ -129,10 +129,10 @@
 
     init_palette_file
 
-    // 現在の色を RGB に分解 (result_color は 0x00BBGGRR)
-    oldR = result_color & 0xff
+    // 現在の色を RGB に分解 (result_color は 0x00RRGGBB)
+    oldB = result_color & 0xff
     oldG = (result_color >> 8) & 0xff
-    oldB = (result_color >> 16) & 0xff
+    oldR = (result_color >> 16) & 0xff
     if use_alpha {
         curA = (result_color >> 24) & 0xff
         if curA == 0 : curA = 255 // 初期値が0（または未指定）の場合は不透明(100%)にする
@@ -406,6 +406,10 @@
         hsvcolor curH, curS, curV
         curR = ginfo_r : curG = ginfo_g : curB = ginfo_b
 
+        // 呼び出し元の result_color にリアルタイム反映
+        result_color = curB | (curG << 8) | (curR << 16)
+        if use_alpha : result_color = result_color | (curA << 24) : else : result_color = result_color | (255 << 24)
+
         // --- 2. 描画処理 ---
         redraw 0
         pos 0, 0 : gcopy ID_CACHE, 0, 0, 460, winH
@@ -598,7 +602,7 @@
                 // OK
                 if mousex >= 90 && mousex <= 195 {
                     hsvcolor curH, curS, curV
-                    result_color = ginfo_r | (ginfo_g << 8) | (ginfo_b << 16)
+                    result_color = ginfo_b | (ginfo_g << 8) | (ginfo_r << 16)
                     if use_alpha : result_color = result_color | (curA << 24) : else : result_color = result_color | (255 << 24)
                     is_done = 1
                 }
