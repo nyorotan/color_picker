@@ -41,11 +41,14 @@
 	b = (result_color >> 16) & 0xff
 	a = (result_color >> 24) & 0xff
 
+    // a, r, g, b の順（0xAARRGGBB）に再構築
+    argb_color  = (a << 24) | (r << 16) | (g << 8) | b
+
 	// AHSVに変換
 	RGB2HSV result_color, resA, resH, resS, resV
 
 	// 表示
-    mesbox1 = strf("ARGB  16進数: %08x", result_color) + "\n"
+    mesbox1 = strf("ARGB  16進数: %08x", argb_color ) + "\n"
     mesbox1 += strf("ARGB  分解: A=%d, R=%d, G=%d, B=%d", a, r, g, b) + "\n\n"
     mesbox1 += strf("AHSV  16進数: %02x%02x%02x%02x", resA, resH, resS, resV) + "\n"
     mesbox1 += strf("AHSV  分解: A=%d, H=%d, S=%d, V=%d", resA, resH, resS, resV)
