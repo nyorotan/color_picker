@@ -64,7 +64,7 @@ open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
 
 ### パラメータ詳細
 
-* `result_color`: 色の結果（0xAABBGGRR形式）が格納される変数。
+* `result_color`: 色の結果（0xAARRGGBB形式）が格納される変数。
 * `is_dark`: `1`でダークモード、`0`でライトモード。
 * `bar_color`: Windows 11のタイトルバー色（カラーコード）。
 * `f_name`: UIで使用するフォント名。
