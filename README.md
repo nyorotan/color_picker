@@ -1,100 +1,99 @@
-# カラーピッカー for HSP3
+🌐 **English** | [日本語](./README.ja.md)
 
-![ ](./000.jpg)
+# Color Picker for HSP3
 
-このプロジェクトは、HSP3で開発された高機能なカラーピッカーアプリおよび、その機能を他のアプリに組み込むためのモジュールです。
+![Image](./000.jpg)
 
----
-
-## ユーザー向けガイド（使い方）
-
-このツールは、画面上の色を取得したり、パレットを使って自由な色を作成・保存したりするためのアプリケーションです。  
-選択した色はRGBとHSVに変換され、ウインドウにリアルタイムで表示されます。  
-また、「OK」ボタンを押すとクリップボードにARGB値がコピーされます。  
-
-### 1. 色を選ぶ
-
-* **カラーサークル:** 外側の輪をドラッグして「色相（色の種類）」を選択します。
-* **中央の四角:** 四角の中をドラッグして「彩度（鮮やかさ）」と「明度（明るさ）」を調整します。
-* **スライダー:** 画面下のスライダーで、色の透過度（アルファ値）を調整できます。
-
-### 2. 色を拾う（スポイト機能）
-
-スポイト機能を使用している間は、一時的に通常のクリック操作は無効になります。
-
-![ ](./001.jpg)
-
-1. 「Pick」ボタンをクリックします。
-2. マウスカーソルが十字に変わります。
-3. 画面上の好きな場所をクリックすると、その場所の色を抽出します。
-4. キャンセルしたい場合は「Esc」キーを押してください。
-
-### 3. パレット機能
-
-* **色を保存:** パレットの各枠を「右クリック」すると、現在作成中の色を保存できます。
-* **色を読み込む:** パレットの枠を「左クリック」すると、保存した色を呼び出せます。
-
-### 4.色を使う
-
-* **色をコピー:** 「OK」ボタンを押すと、その色のカラーコード（RGB/HEX）をクリップボードにコピーできます。また、小窓が開き詳細が表示されるので、そこから必要な情報をコピーすることも可能です。
+This project is a high‑functionality color picker application developed with HSP3, as well as a module that can be integrated into other applications.
 
 ---
 
-## 開発者向けガイド（モジュールの組み込み）
+## User Guide (How to Use)
 
-本モジュールを自身のHSP3プロジェクトに組み込み、カスタムカラーピッカーとして利用する方法を解説します。
+The tool is an application that lets you pick colors from the screen, create and save custom colors using a palette, and view the selected color in both RGB and HSV formats in real‑time. Pressing the **OK** button copies the ARGB value to the clipboard.
 
-### 組み込み手順
+### 1. Selecting a Color
 
-1. `color_picker.as` をプロジェクトフォルダに配置します。
-2. メインのスクリプトで以下のようにインクルードしてください。
+- **Color wheel:** Drag the outer circle to choose the hue (color type).
+- **Center square:** Drag inside the square to adjust saturation (vividness) and value (brightness).
+- **Slider:** Use the slider at the bottom of the window to adjust the alpha (transparency) of the color.
 
+### 2. Picking a Color (Eyedropper)
+
+While the eyedropper is active, normal click actions are temporarily disabled.
+
+![Image](./001.jpg)
+
+1. Click the **Pick** button.
+2. The mouse cursor changes to a crosshair.
+3. Click any point on the screen to sample its color.
+4. Press **Esc** to cancel.
+
+### 3. Palette Feature
+
+- **Save a color:** Right‑click a palette slot to store the currently created color.
+- **Load a color:** Left‑click a palette slot to retrieve a saved color.
+
+### 4. Using the Color
+
+- **Copy the color:** Press the **OK** button to copy the color code (RGB/HEX) to the clipboard. A small window also shows detailed information that you can copy as needed.
+
+---
+
+## Developer Guide (Integrating the Module)
+
+This section explains how to embed the module into your own HSP3 project and use it as a custom color picker.
+
+### Integration Steps
+
+1. Place `color_picker.as` in your project folder.
+2. Include it in your main script:
    ```hsp
    #include "color_picker.as"
    ```
 
-### モジュールの呼び出し
+### Calling the Module
 
-以下の関数を呼び出すことで、別ウィンドウでカラーピッカーが起動します。
-
+Invoke the following function to launch the color picker in a separate window:
 ```hsp
-// 変数(結果格納用), ダークモード(0/1), タイトルバーの色, フォント名, アルファ使用(0/1)
-open_custom_color_picker result_color, 1, 0x1E1E1E, "メイリオ", 1
+// result_color: variable to receive the result, dark_mode (0/1), title bar color, font name, use_alpha (0/1)
+open_custom_color_picker result_color, 1, 0x1E1E1E, "Meiryo", 1
 ```
 
-### パラメータ詳細
+#### Parameter Details
 
-* `result_color`: 色の結果（0xAABBGGRR形式）が格納される変数。
-* `is_dark`: `1`でダークモード、`0`でライトモード。
-* `bar_color`: Windows 11のタイトルバー色（カラーコード）。
-* `f_name`: UIで使用するフォント名。
-* `use_alpha`: `1`で透過度あり、`0`でなし。
+- `result_color`: Variable that receives the selected color as a 0xAARRGGBB value.
+- `is_dark`: `1` for dark mode, `0` for light mode.
+- `bar_color`: Title‑bar color (Windows 11) expressed as a color code.
+- `f_name`: Font name used in the UI.
+- `use_alpha`: `1` to enable transparency, `0` to disable.
 
-また、`color_picker.as`内の`SET_OLD`の値を`1`にすると`open_custom_color_picker`を呼び出した際の`result_color`に格納している値を`old`として新しい値`new`と並べて小窓に表示することが出来ます。
+Setting the `SET_OLD` flag inside `color_picker.as` to `1` will also display the previous color (`old`) alongside the new one (`new`) in the popup window.
 
-### 特徴
+### Features
 
-* **高DPI対応:** `SetThreadDpiAwarenessContext` を使用しており、高解像度環境でも適切に描画されます。
-* **Windowsダークモード対応:** OSのテーマ設定に合わせてウィンドウの枠をダークモード化できます。
-* **JSONパレット管理:** 保存データは `utils\color_palette.json` に出力され、設定を保持可能です。
+- **High‑DPI support:** Uses `SetThreadDpiAwarenessContext` for proper rendering on high‑resolution displays.
+- **Windows dark‑mode support:** Adapts the window frame to match the OS theme.
+- **JSON palette management:** Saves palette data to `utils\color_palette.json` so settings persist.
 
-### 注意事項
+### Notes
 
-* `user32.as`, `kernel32.as` をインクルードする必要があります。
-* `utils` フォルダが存在しない場合、自動的に生成されます。
-
+- You need to include `user32.as` and `kernel32.as`.
+- If the `utils` folder does not exist, it will be created automatically.
 
 ---
 
-## ライセンス
+## License
 
-本プロジェクトは `NYSL(煮るなり焼くなり好きにしろライセンス)` の下で公開されています。
+This project is released under the **NYSL (Niru nari Yaku nari Suki ni Shiro License)**.
 
-`煮るなり焼くなり好きにしてください。`
+```
+Do whatever you like with it—boil it, grill it, or whatever.
+```
 
-- **著作権**: © 2026 nyorotan
+- **Copyright**: © 2026 nyorotan
 
-## バージョン情報
+## Version Information
 
-- **バージョン**: v1.2.0
-- **作者**: nyorotan
+- **Version**: v1.2.0
+- **Author**: nyorotan
